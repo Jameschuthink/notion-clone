@@ -12,6 +12,8 @@ import {
   CodeIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
+import useStore from '@/store/useStore';
+import { useEffect } from 'react';
 
 const MenuBar = ({ editor }: { editor: any }) => {
   if (!editor) {
@@ -77,6 +79,12 @@ const MenuBar = ({ editor }: { editor: any }) => {
 };
 
 export default function Editor() {
+  const currentPageId = useStore((state) => state.currentPageId);
+  const currentPage = useStore((state) => 
+    state.currentPageId ? state.pages[state.currentPageId] : null
+  );
+  const updatePage = useStore((state) => state.updatePage);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -84,19 +92,40 @@ export default function Editor() {
         placeholder: 'Type "/" for commands...',
       }),
     ],
-    content: '<p></p>',
+    content: currentPage?.content || '<p></p>',
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
       },
     },
+    onUpdate: ({ editor }) => {
+      if (currentPageId) {
+        updatePage(currentPageId, { content: editor.getHTML() });
+      }
+    },
   });
+
+  useEffect(() => {
+    if (editor && currentPage) {
+      editor.commands.setContent(currentPage.content || '<p></p>');
+    }
+  }, [currentPageId, currentPage, editor]);
+
+  if (!currentPage) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-500">
+        Select a page from the sidebar
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="mb-4">
         <input
           type="text"
+          value={currentPage.title}
+          onChange={(e) => updatePage(currentPageId, { title: e.target.value })}
           placeholder="Untitled"
           className="text-4xl font-bold w-full bg-transparent border-none outline-none"
         />
